@@ -6,11 +6,7 @@
 ![Dart](https://img.shields.io/badge/Dart-3.x-blue?logo=dart)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-## 📱 スクリーンショット
 
-| ホーム画面 | 地点選択 |
-|:---:|:---:|
-| ダークテーマのメイン画面 | 地点登録・検索画面 |
 
 ## ✨ 機能
 
