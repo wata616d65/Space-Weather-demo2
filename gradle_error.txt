@@ -1,0 +1,128 @@
+﻿[Incubating] Problems report is available at: file:///C:/Projects/Space%20Weather%20app/android/build/reports/problems/problems-report.html
+.\gradlew.bat : 
+発生場所 行:1 文字:13
++ cd android; .\gradlew.bat assembleDebug 2>&1
+ | Out-File -FilePath ..\ ...
++             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandEr 
+   ror
+ 
+FAILURE: Build failed with an exception.
+
+* Where:
+Settings file 'C:\Projects\Space Weather app\a
+ndroid\settings.gradle.kts' line: 20
+
+* What went wrong:
+Error resolving plugin [id: 'dev.flutter.flutt
+er-plugin-loader', version: '1.0.0']
+> A problem occurred configuring project ':gra
+dle'.
+   > Multiple build operations failed.
+         Could not read workspace metadata fro
+m C:\Users\lapis\.gradle\caches\8.11.1\transfo
+rms\274e934bc92511cd10fad8caa4d25977\metadata.
+bin
+         Could not read workspace metadata fro
+m C:\Users\lapis\.gradle\caches\8.11.1\transfo
+rms\1f6dc54b99ca096cd6ea1c54d75b0d9e\metadata.
+bin
+         Could not read workspace metadata fro
+m C:\Users\lapis\.gradle\caches\8.11.1\transfo
+rms\a2f7097da4f5dc43ccc70f15aa78f6cf\metadata.
+bin
+         Could not read workspace metadata fro
+m C:\Users\lapis\.gradle\caches\8.11.1\transfo
+rms\60aec3cc0066647e425c33e2df1f7eee\metadata.
+bin
+         Could not read workspace metadata fro
+m C:\Users\lapis\.gradle\caches\8.11.1\transfo
+rms\c89c7aee3b4907ee4739f6efa1b5a2ab\metadata.
+bin
+         Could not read workspace metadata fro
+m C:\Users\lapis\.gradle\caches\8.11.1\transfo
+rms\164f6f7d2f76dc41692482d44fa3c0bd\metadata.
+bin
+         Could not read workspace metadata fro
+m C:\Users\lapis\.gradle\caches\8.11.1\transfo
+rms\2b9b25c2435d3e79bc7f242aa81cca7f\metadata.
+bin
+         Could not read workspace metadata fro
+m C:\Users\lapis\.gradle\caches\8.11.1\transfo
+rms\7592fe2f094c82126d8e9d31de59b62a\metadata.
+bin
+         Could not read workspace metadata fro
+m C:\Users\lapis\.gradle\caches\8.11.1\transfo
+rms\861004acddba2701e93ae76fc6f706a8\metadata.
+bin
+         Could not read workspace metadata fro
+m C:\Users\lapis\.gradle\caches\8.11.1\transfo
+rms\6877dbe49ef63bc8f1c08fa8f5fe2c5f\metadata.
+bin
+         ...and 2 more failures.
+      > Could not read workspace metadata from
+ C:\Users\lapis\.gradle\caches\8.11.1\transfor
+ms\274e934bc92511cd10fad8caa4d25977\metadata.b
+in
+      > Could not read workspace metadata from
+ C:\Users\lapis\.gradle\caches\8.11.1\transfor
+ms\1f6dc54b99ca096cd6ea1c54d75b0d9e\metadata.b
+in
+      > Could not read workspace metadata from
+ C:\Users\lapis\.gradle\caches\8.11.1\transfor
+ms\a2f7097da4f5dc43ccc70f15aa78f6cf\metadata.b
+in
+      > Could not read workspace metadata from
+ C:\Users\lapis\.gradle\caches\8.11.1\transfor
+ms\60aec3cc0066647e425c33e2df1f7eee\metadata.b
+in
+      > Could not read workspace metadata from
+ C:\Users\lapis\.gradle\caches\8.11.1\transfor
+ms\c89c7aee3b4907ee4739f6efa1b5a2ab\metadata.b
+in
+      > Could not read workspace metadata from
+ C:\Users\lapis\.gradle\caches\8.11.1\transfor
+ms\164f6f7d2f76dc41692482d44fa3c0bd\metadata.b
+in
+      > Could not read workspace metadata from
+ C:\Users\lapis\.gradle\caches\8.11.1\transfor
+ms\2b9b25c2435d3e79bc7f242aa81cca7f\metadata.b
+in
+      > Could not read workspace metadata from
+ C:\Users\lapis\.gradle\caches\8.11.1\transfor
+ms\7592fe2f094c82126d8e9d31de59b62a\metadata.b
+in
+      > Could not read workspace metadata from
+ C:\Users\lapis\.gradle\caches\8.11.1\transfor
+ms\861004acddba2701e93ae76fc6f706a8\metadata.b
+in
+      > Could not read workspace metadata from
+ C:\Users\lapis\.gradle\caches\8.11.1\transfor
+ms\6877dbe49ef63bc8f1c08fa8f5fe2c5f\metadata.b
+in
+      > Could not read workspace metadata from
+ C:\Users\lapis\.gradle\caches\8.11.1\transfor
+ms\4a62fad736b0656f630024e39770483e\metadata.b
+in
+      > Could not read workspace metadata from
+ C:\Users\lapis\.gradle\caches\8.11.1\transfor
+ms\34f5339a9804973dcc3fdc575117cc6d\metadata.b
+in
+
+* Try:
+> Run with --stacktrace option to get the stac
+k trace.
+> Run with --info or --debug option to get mor
+e log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.11.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 1s
