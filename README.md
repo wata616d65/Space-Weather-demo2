@@ -226,4 +226,4 @@ MIT License
 
 ## 📞 お問い合わせ
 
-Issues または Pull Request でお気軽にどうぞ！
+wata616d65
