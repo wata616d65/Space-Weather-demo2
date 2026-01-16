@@ -27,16 +27,16 @@
 | Flutter | 3.38.x 以上 |
 | Dart | 3.x 以上 |
 | Android SDK | API 21 以上 |
-| Java JDK | 17 |
-
-### 1. Flutter SDKのインストール
-
 ```bash
 # Flutter公式サイトからダウンロード
 # https://docs.flutter.dev/get-started/install
 
 # インストール確認
 flutter doctor
+| Java JDK | 17 |
+
+### 1. Flutter SDKのインストール
+
 ```
 
 ### 2. リポジトリのクローン
