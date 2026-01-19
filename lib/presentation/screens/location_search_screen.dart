@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
@@ -22,13 +23,48 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
   bool _isGettingLocation = false;
   String? _errorMessage;
 
+  // オートコンプリート用
+  Timer? _debounceTimer;
+  bool _showSuggestions = false;
+  static const _debounceDuration = Duration(milliseconds: 300);
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchTextChanged);
+  }
+
   @override
   void dispose() {
+    _debounceTimer?.cancel();
+    _searchController.removeListener(_onSearchTextChanged);
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _searchLocation() async {
+  /// テキスト変更時のデバウンス処理
+  void _onSearchTextChanged() {
+    _debounceTimer?.cancel();
+    final query = _searchController.text.trim();
+
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _showSuggestions = false;
+        _errorMessage = null;
+      });
+      return;
+    }
+
+    // 2文字以上で検索開始
+    if (query.length >= 2) {
+      _debounceTimer = Timer(_debounceDuration, () {
+        _searchLocation(showSuggestions: true);
+      });
+    }
+  }
+
+  Future<void> _searchLocation({bool showSuggestions = false}) async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
 
@@ -42,11 +78,13 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
       final results = await repository.searchByName(query);
       setState(() {
         _searchResults = results;
+        _showSuggestions = showSuggestions && results.isNotEmpty;
         _isSearching = false;
       });
     } on LocationException catch (e) {
       setState(() {
         _errorMessage = e.message;
+        _showSuggestions = false;
         _isSearching = false;
       });
     }
@@ -74,8 +112,9 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
   }
 
   Future<void> _addLocation(UserLocation location) async {
-    final added =
-        await ref.read(locationsProvider.notifier).addLocation(location);
+    final added = await ref
+        .read(locationsProvider.notifier)
+        .addLocation(location);
     if (added) {
       ref.read(selectedLocationProvider.notifier).selectLocation(location.id);
       ref.read(selectedLocationProvider.notifier).refresh();
@@ -175,6 +214,112 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
                     ],
                   ),
                 ),
+
+                // オートコンプリート候補ドロップダウン
+                if (_showSuggestions && _searchResults.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: _searchResults.length,
+                      itemBuilder: (context, index) {
+                        final location = _searchResults[index];
+                        return InkWell(
+                          onTap: () {
+                            setState(() {
+                              _showSuggestions = false;
+                            });
+                            _addLocation(location);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              border: index < _searchResults.length - 1
+                                  ? Border(
+                                      bottom: BorderSide(
+                                        color: AppTheme.textMuted.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        width: 1,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.location_on,
+                                    color: AppTheme.primaryColor,
+                                    size: 16,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        location.name,
+                                        style: const TextStyle(
+                                          color: AppTheme.textPrimary,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Text(
+                                        location.coordinateString,
+                                        style: const TextStyle(
+                                          color: AppTheme.textMuted,
+                                          fontSize: 11,
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.add_circle_outline,
+                                  color: AppTheme.accentColor,
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
                 const SizedBox(height: 12),
 
                 // 現在地取得ボタン
@@ -244,11 +389,7 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.search,
-                    color: AppTheme.textMuted,
-                    size: 16,
-                  ),
+                  const Icon(Icons.search, color: AppTheme.textMuted, size: 16),
                   const SizedBox(width: 8),
                   Text(
                     '検索結果（${_searchResults.length}件）',
@@ -289,11 +430,7 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                const Icon(
-                  Icons.bookmark,
-                  color: AppTheme.textMuted,
-                  size: 16,
-                ),
+                const Icon(Icons.bookmark, color: AppTheme.textMuted, size: 16),
                 const SizedBox(width: 8),
                 Text(
                   '登録済みの地点（${locations.length}件）',
