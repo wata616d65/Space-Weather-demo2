@@ -6,6 +6,7 @@ import '../providers/providers.dart';
 import '../widgets/mode_toggle.dart';
 import '../widgets/risk_panel.dart';
 import 'location_search_screen.dart';
+import 'core_detail_screen.dart';
 
 /// メイン画面
 class HomeScreen extends ConsumerWidget {
@@ -97,10 +98,17 @@ class HomeScreen extends ConsumerWidget {
 
                       // 全体サマリー
                       allRisks.when(
-                        data: (risks) => _buildSummaryCard(risks.overallSummary),
+                        data: (risks) =>
+                            _buildSummaryCard(risks.overallSummary),
                         loading: () => const SizedBox(),
                         error: (_, __) => const SizedBox(),
                       ),
+
+                      // Core詳細ボタン（Coreモードのみ表示）
+                      if (isCoreMode) ...[
+                        const SizedBox(height: 12),
+                        _buildCoreDetailButton(context),
+                      ],
                     ],
                   ),
                 ),
@@ -113,11 +121,11 @@ class HomeScreen extends ConsumerWidget {
                   data: (risks) => SliverGrid(
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.85,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.85,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
                     delegate: SliverChildListDelegate([
                       RiskPanel(risk: risks.drone, isCoreMode: isCoreMode),
                       RiskPanel(risk: risks.gps, isCoreMode: isCoreMode),
@@ -148,9 +156,8 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  error: (e, _) => SliverToBoxAdapter(
-                    child: _buildErrorCard(e.toString()),
-                  ),
+                  error: (e, _) =>
+                      SliverToBoxAdapter(child: _buildErrorCard(e.toString())),
                 ),
               ),
             ],
@@ -168,9 +175,7 @@ class HomeScreen extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const LocationSearchScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const LocationSearchScreen()),
         );
       },
       child: Container(
@@ -225,10 +230,7 @@ class HomeScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: AppTheme.textMuted,
-            ),
+            const Icon(Icons.chevron_right, color: AppTheme.textMuted),
           ],
         ),
       ),
@@ -284,6 +286,70 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildCoreDetailButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const CoreDetailScreen()),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppTheme.accentColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppTheme.accentColor.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppTheme.accentColor.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.insights,
+                color: AppTheme.accentColor,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Core データ詳細',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    '太陽フレア・Kp指数・太陽風 他',
+                    style: TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: AppTheme.accentColor,
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildErrorCard(String error) {
     return Container(
       margin: const EdgeInsets.all(20),
@@ -298,11 +364,7 @@ class HomeScreen extends ConsumerWidget {
       ),
       child: Column(
         children: const [
-          Icon(
-            Icons.cloud_off,
-            color: AppTheme.dangerColor,
-            size: 48,
-          ),
+          Icon(Icons.cloud_off, color: AppTheme.dangerColor, size: 48),
           SizedBox(height: 12),
           Text(
             'データを取得できませんでした',
@@ -315,10 +377,7 @@ class HomeScreen extends ConsumerWidget {
           SizedBox(height: 8),
           Text(
             'インターネット接続を確認してください',
-            style: TextStyle(
-              color: AppTheme.textMuted,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
             textAlign: TextAlign.center,
           ),
         ],

@@ -18,6 +18,7 @@ class AppTheme {
   // リスクレベルカラー（信号機カラー）
   static const Color safeColor = Color(0xFF10B981); // 安全 - Green
   static const Color cautionColor = Color(0xFFF59E0B); // 注意 - Amber
+  static const Color warningColor = Color(0xFFF97316); // 警告 - Orange
   static const Color dangerColor = Color(0xFFEF4444); // 危険 - Red
 
   // テキストカラー
@@ -41,10 +42,7 @@ class AppTheme {
       ),
       textTheme: GoogleFonts.notoSansJpTextTheme(
         ThemeData.dark().textTheme,
-      ).apply(
-        bodyColor: textPrimary,
-        displayColor: textPrimary,
-      ),
+      ).apply(bodyColor: textPrimary, displayColor: textPrimary),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -55,10 +53,7 @@ class AppTheme {
           fontWeight: FontWeight.w600,
         ),
       ),
-      cardTheme: const CardThemeData(
-        color: cardColor,
-        elevation: 0,
-      ),
+      cardTheme: const CardThemeData(color: cardColor, elevation: 0),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
