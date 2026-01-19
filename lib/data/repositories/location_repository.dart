@@ -2,6 +2,7 @@ import 'package:geocoding/geocoding.dart' as geo;
 import 'package:geolocator/geolocator.dart';
 import '../../domain/entities/user_location.dart';
 import '../datasources/local_storage.dart';
+import '../datasources/geoapify_service.dart';
 
 /// 日本の主要都市（47都道府県庁所在地 + 主要都市）
 const Map<String, Map<String, double>> _japaneseCities = {
@@ -72,9 +73,19 @@ const Map<String, Map<String, double>> _japaneseCities = {
 /// 地点管理リポジトリ
 class LocationRepository {
   final LocalStorage _localStorage;
+  final GeoapifyService _geoapifyService;
+
+  /// 言語設定（デフォルトは日本語）
+  String _languageCode = 'ja';
 
   LocationRepository({required LocalStorage localStorage})
-    : _localStorage = localStorage;
+    : _localStorage = localStorage,
+      _geoapifyService = GeoapifyService();
+
+  /// 言語コードを設定
+  void setLanguage(String languageCode) {
+    _languageCode = languageCode;
+  }
 
   // ========== 地点CRUD ==========
 
@@ -185,30 +196,53 @@ class LocationRepository {
   }
 
   /// 都市名から座標を検索
-  /// 日本語ロケール優先で検索
+  /// 多言語対応、検索優先順位:
+  /// 1. 日本都市ローカルDB（高速、オフライン）
+  /// 2. Geoapify API（多言語対応、グローバル）
+  /// 3. 標準geocoding（フォールバック）
   Future<List<UserLocation>> searchByName(String query) async {
     if (query.trim().isEmpty) return [];
 
     final results = <UserLocation>[];
 
     // 1. まず日本の都市データから検索（部分一致）
-    final matchingCities = _searchJapaneseCities(query);
-    for (final entry in matchingCities) {
-      results.add(
-        UserLocation.create(
-          name: entry.key,
-          latitude: entry.value['lat']!,
-          longitude: entry.value['lon']!,
-        ),
-      );
+    // 日本語検索の場合のみ
+    if (_isJapaneseText(query)) {
+      final matchingCities = _searchJapaneseCities(query);
+      for (final entry in matchingCities) {
+        results.add(
+          UserLocation.create(
+            name: entry.key,
+            latitude: entry.value['lat']!,
+            longitude: entry.value['lon']!,
+          ),
+        );
+      }
+
+      // 日本都市で見つかった場合はそれを返す
+      if (results.isNotEmpty) {
+        return results;
+      }
     }
 
-    // 日本都市で見つかった場合はそれを返す
-    if (results.isNotEmpty) {
-      return results;
+    // 2. Geoapify APIで検索（多言語対応）
+    if (_geoapifyService.isConfigured) {
+      try {
+        final geoapifyResults = await _geoapifyService.autocomplete(
+          query: query,
+          lang: _languageCode,
+          limit: 5,
+        );
+
+        if (geoapifyResults.isNotEmpty) {
+          return geoapifyResults;
+        }
+      } catch (_) {
+        // Geoapifyが失敗した場合はフォールバックに進む
+      }
     }
 
-    // 2. 見つからない場合はgeocodingで検索
+    // 3. 見つからない場合は標準geocodingで検索
     try {
       // 日本語検索の場合は「Japan」を付加して精度向上
       String searchQuery = query;
