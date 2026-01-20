@@ -114,6 +114,11 @@ class LocationRepository {
     return await _localStorage.removeLocation(locationId);
   }
 
+  /// 地点の並び順を更新
+  Future<bool> reorderLocations(List<UserLocation> locations) async {
+    return await _localStorage.reorderLocations(locations);
+  }
+
   // ========== 選択中の地点 ==========
 
   /// 選択中の地点を取得

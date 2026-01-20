@@ -8,233 +8,297 @@ import '../widgets/mode_toggle.dart';
 import '../widgets/risk_panel.dart';
 import 'location_search_screen.dart';
 import 'core_detail_screen.dart';
+import '../../domain/entities/user_location.dart';
+import 'location_management_screen.dart';
 
 /// メイン画面
-class HomeScreen extends ConsumerWidget {
+/// メイン画面
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isCoreMode = ref.watch(displayModeProvider);
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  // ページ変更時の処理
+  void _onPageChanged(int index) {
+    // 選択されたページに対応する地点を取得し、選択状態を更新
+    // ※Notifierの実装に依存しますが、ここでは一覧のindexと一致すると仮定
+    final locations = ref.read(locationsProvider);
+    if (index >= 0 && index < locations.length) {
+      final location = locations[index];
+      // 現在の選択と異なる場合のみ更新
+      final currentSelected = ref.read(selectedLocationProvider);
+      if (currentSelected?.id != location.id) {
+        ref.read(selectedLocationProvider.notifier).selectLocation(location.id);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locations = ref.watch(locationsProvider);
     final selectedLocation = ref.watch(selectedLocationProvider);
-    final allRisks = ref.watch(allRisksProvider);
-    final spaceWeather = ref.watch(spaceWeatherDataProvider);
+
+    ref.listen(selectedLocationProvider, (prev, next) {
+      if (next != null) {
+        final index = locations.indexWhere((loc) => loc.id == next.id);
+        if (index != -1 &&
+            _pageController.hasClients &&
+            _pageController.page?.round() != index) {
+          _pageController.jumpToPage(index);
+        }
+      }
+    });
+
+    if (selectedLocation != null && !_pageController.hasClients) {
+      final index = locations.indexWhere(
+        (loc) => loc.id == selectedLocation.id,
+      );
+      if (index != -1) {
+        _pageController = PageController(initialPage: index);
+      }
+    }
+
+    if (locations.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                "地点が登録されていません",
+                style: TextStyle(color: AppTheme.textPrimary, fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const LocationSearchScreen(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentColor,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text("地点を追加"),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(spaceWeatherDataProvider);
+        child: PageView.builder(
+          controller: _pageController,
+          onPageChanged: _onPageChanged,
+          itemCount: locations.length,
+          itemBuilder: (context, index) {
+            return _buildLocationPage(context, locations[index]);
           },
-          color: AppTheme.primaryColor,
-          backgroundColor: AppTheme.surfaceColor,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              // ヘッダー
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // タイトル行
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Space Weather',
-                                style: TextStyle(
-                                  color: AppTheme.textPrimary,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              spaceWeather.when(
-                                data: (data) => Text(
-                                  '更新: ${DateFormatter.formatRelative(data.fetchedAt)}',
-                                  style: const TextStyle(
-                                    color: AppTheme.textMuted,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                loading: () => const Text(
-                                  '読み込み中...',
-                                  style: TextStyle(
-                                    color: AppTheme.textMuted,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                error: (_, __) => const Text(
-                                  'オフライン（キャッシュ表示）',
-                                  style: TextStyle(
-                                    color: AppTheme.cautionColor,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          ModeToggle(
-                            isCoreMode: isCoreMode,
-                            onChanged: (isCore) {
-                              ref
-                                  .read(displayModeProvider.notifier)
-                                  .setMode(isCore);
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-
-                      // 地点セレクター
-                      _buildLocationSelector(context, ref, selectedLocation),
-                      const SizedBox(height: 16),
-
-                      // 全体サマリー
-                      allRisks.when(
-                        data: (risks) =>
-                            _buildSummaryCard(risks.overallSummary),
-                        loading: () => const SizedBox(),
-                        error: (_, __) => const SizedBox(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // リスクパネル一覧
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(20, 16, 20, isCoreMode ? 16 : 100),
-                sliver: allRisks.when(
-                  data: (risks) => SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.85,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                        ),
-                    delegate: SliverChildListDelegate([
-                      RiskPanel(risk: risks.drone, isCoreMode: isCoreMode),
-                      RiskPanel(risk: risks.gps, isCoreMode: isCoreMode),
-                      RiskPanel(risk: risks.radio, isCoreMode: isCoreMode),
-                      RiskPanel(risk: risks.radiation, isCoreMode: isCoreMode),
-                    ]),
-                  ),
-                  loading: () => SliverToBoxAdapter(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(60),
-                        child: Column(
-                          children: const [
-                            CircularProgressIndicator(
-                              color: AppTheme.primaryColor,
-                              strokeWidth: 2,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'データを取得中...',
-                              style: TextStyle(
-                                color: AppTheme.textMuted,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  error: (e, _) =>
-                      SliverToBoxAdapter(child: _buildErrorCard(e.toString())),
-                ),
-              ),
-
-              // Core詳細セクション（Coreモードのみ表示）
-              if (isCoreMode)
-                SliverToBoxAdapter(
-                  child: _buildCoreDetailSection(context, ref),
-                ),
-            ],
-          ),
         ),
       ),
     );
   }
 
-  Widget _buildLocationSelector(
-    BuildContext context,
-    WidgetRef ref,
-    dynamic selectedLocation,
-  ) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const LocationSearchScreen()),
-        );
+  Widget _buildLocationPage(BuildContext context, UserLocation location) {
+    final isCoreMode = ref.watch(displayModeProvider);
+    final allRisks = ref.watch(allRisksFamilyProvider(location));
+    final spaceWeather = ref.watch(spaceWeatherDataProvider);
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(spaceWeatherDataProvider);
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppTheme.primaryColor.withValues(alpha: 0.3),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.location_on,
-                color: AppTheme.primaryColor,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
+      color: AppTheme.primaryColor,
+      backgroundColor: AppTheme.surfaceColor,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // ヘッダー
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    selectedLocation?.name ?? '地点を選択',
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  // タイトル行（地点名 + 編集ボタン）
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const LocationManagementScreen(),
+                            ),
+                          );
+                        },
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              color: AppTheme.textPrimary,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              location.name,
+                              style: const TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.arrow_drop_down,
+                              color: AppTheme.textMuted,
+                            ),
+                          ],
+                        ),
+                      ),
+                      ModeToggle(
+                        isCoreMode: isCoreMode,
+                        onChanged: (isCore) {
+                          ref
+                              .read(displayModeProvider.notifier)
+                              .setMode(isCore);
+                        },
+                      ),
+                    ],
                   ),
-                  if (selectedLocation != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      selectedLocation.coordinateString,
-                      style: const TextStyle(
-                        color: AppTheme.textMuted,
-                        fontSize: 12,
-                        fontFamily: 'monospace',
+                  const SizedBox(height: 4),
+                  spaceWeather.when(
+                    data: (data) => Padding(
+                      padding: const EdgeInsets.only(left: 32),
+                      child: Text(
+                        '更新: ${DateFormatter.formatRelative(data.fetchedAt)}',
+                        style: const TextStyle(
+                          color: AppTheme.textMuted,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
-                  ],
+                    loading: () => const Padding(
+                      padding: EdgeInsets.only(left: 32),
+                      child: Text(
+                        '読み込み中...',
+                        style: TextStyle(
+                          color: AppTheme.textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    error: (_, __) => const Padding(
+                      padding: EdgeInsets.only(left: 32),
+                      child: Text(
+                        'オフライン（キャッシュ表示）',
+                        style: TextStyle(
+                          color: AppTheme.cautionColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // 全体サマリー
+                  allRisks.when(
+                    data: (risks) => _buildSummaryCard(risks.overallSummary),
+                    loading: () => _buildLoadingSummaryCard(),
+                    error: (_, __) => const SizedBox(height: 100),
+                  ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppTheme.textMuted),
-          ],
-        ),
+          ),
+
+          // リスクパネル一覧
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, isCoreMode ? 16 : 100),
+            sliver: allRisks.when(
+              data: (risks) => SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.85,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                delegate: SliverChildListDelegate([
+                  RiskPanel(risk: risks.drone, isCoreMode: isCoreMode),
+                  RiskPanel(risk: risks.gps, isCoreMode: isCoreMode),
+                  RiskPanel(risk: risks.radio, isCoreMode: isCoreMode),
+                  RiskPanel(risk: risks.radiation, isCoreMode: isCoreMode),
+                ]),
+              ),
+              loading: () => SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(60),
+                    child: Column(
+                      children: const [
+                        CircularProgressIndicator(
+                          color: AppTheme.primaryColor,
+                          strokeWidth: 2,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'データを取得中...',
+                          style: TextStyle(
+                            color: AppTheme.textMuted,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              error: (e, _) =>
+                  SliverToBoxAdapter(child: _buildErrorCard(e.toString())),
+            ),
+          ),
+
+          // Core詳細セクション（Coreモードのみ表示）
+          if (isCoreMode)
+            SliverToBoxAdapter(child: _buildCoreDetailSection(context, ref)),
+        ],
       ),
+    );
+  }
+
+  Widget _buildLoadingSummaryCard() {
+    return Container(
+      height: 60,
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
     );
   }
 

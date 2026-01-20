@@ -56,26 +56,26 @@ final riskCalculatorProvider = Provider<RiskCalculator>((ref) {
 // ========== 状態プロバイダー ==========
 
 /// 宇宙天気データプロバイダー
-final spaceWeatherDataProvider =
-    FutureProvider.autoDispose<SpaceWeatherData>((ref) async {
+final spaceWeatherDataProvider = FutureProvider.autoDispose<SpaceWeatherData>((
+  ref,
+) async {
   final repository = ref.watch(noaaRepositoryProvider);
   return await repository.getSpaceWeatherData();
 });
 
 /// 宇宙天気データを強制リフレッシュ
-final refreshSpaceWeatherProvider =
-    FutureProvider.family.autoDispose<SpaceWeatherData, bool>(
-        (ref, forceRefresh) async {
-  final repository = ref.watch(noaaRepositoryProvider);
-  return await repository.getSpaceWeatherData(forceRefresh: forceRefresh);
-});
+final refreshSpaceWeatherProvider = FutureProvider.family
+    .autoDispose<SpaceWeatherData, bool>((ref, forceRefresh) async {
+      final repository = ref.watch(noaaRepositoryProvider);
+      return await repository.getSpaceWeatherData(forceRefresh: forceRefresh);
+    });
 
 /// 登録済み地点リストプロバイダー
 final locationsProvider =
     StateNotifierProvider<LocationsNotifier, List<UserLocation>>((ref) {
-  final repository = ref.watch(locationRepositoryProvider);
-  return LocationsNotifier(repository);
-});
+      final repository = ref.watch(locationRepositoryProvider);
+      return LocationsNotifier(repository);
+    });
 
 class LocationsNotifier extends StateNotifier<List<UserLocation>> {
   final LocationRepository _repository;
@@ -106,15 +106,15 @@ class LocationsNotifier extends StateNotifier<List<UserLocation>> {
 /// 選択中の地点プロバイダー
 final selectedLocationProvider =
     StateNotifierProvider<SelectedLocationNotifier, UserLocation?>((ref) {
-  final repository = ref.watch(locationRepositoryProvider);
-  return SelectedLocationNotifier(repository);
-});
+      final repository = ref.watch(locationRepositoryProvider);
+      return SelectedLocationNotifier(repository);
+    });
 
 class SelectedLocationNotifier extends StateNotifier<UserLocation?> {
   final LocationRepository _repository;
 
   SelectedLocationNotifier(this._repository)
-      : super(_repository.getSelectedLocation());
+    : super(_repository.getSelectedLocation());
 
   Future<void> selectLocation(String locationId) async {
     await _repository.selectLocation(locationId);
@@ -127,8 +127,9 @@ class SelectedLocationNotifier extends StateNotifier<UserLocation?> {
 }
 
 /// 表示モード（Light/Core）プロバイダー
-final displayModeProvider =
-    StateNotifierProvider<DisplayModeNotifier, bool>((ref) {
+final displayModeProvider = StateNotifierProvider<DisplayModeNotifier, bool>((
+  ref,
+) {
   final localStorage = ref.watch(localStorageProvider);
   return DisplayModeNotifier(localStorage);
 });
@@ -150,7 +151,9 @@ class DisplayModeNotifier extends StateNotifier<bool> {
 }
 
 /// 全リスク計算結果プロバイダー
-final allRisksProvider = Provider.autoDispose<AsyncValue<AllRiskResults>>((ref) {
+final allRisksProvider = Provider.autoDispose<AsyncValue<AllRiskResults>>((
+  ref,
+) {
   final weatherAsync = ref.watch(spaceWeatherDataProvider);
   final location = ref.watch(selectedLocationProvider);
   final calculator = ref.watch(riskCalculatorProvider);
@@ -170,3 +173,15 @@ final allRisksProvider = Provider.autoDispose<AsyncValue<AllRiskResults>>((ref) 
     error: (e, st) => AsyncValue.error(e, st),
   );
 });
+
+/// 特定地点のリスク計算結果プロバイダー
+final allRisksFamilyProvider = FutureProvider.family
+    .autoDispose<AllRiskResults, UserLocation>((ref, location) async {
+      final weatherData = await ref.watch(spaceWeatherDataProvider.future);
+      final calculator = ref.watch(riskCalculatorProvider);
+
+      return calculator.calculateAllRisks(
+        weatherData: weatherData,
+        location: location,
+      );
+    });

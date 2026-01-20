@@ -61,6 +61,11 @@ class LocalStorage {
     return await _prefs.setString(_locationsKey, jsonEncode(jsonList));
   }
 
+  /// 地点の並び順を更新
+  Future<bool> reorderLocations(List<UserLocation> locations) async {
+    return await _saveLocations(locations);
+  }
+
   // ========== 選択中の地点 ==========
 
   /// 選択中の地点IDを取得

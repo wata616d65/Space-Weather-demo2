@@ -23,8 +23,8 @@ class AppTheme {
 
   // テキストカラー
   static const Color textPrimary = Color(0xFFF8FAFC);
-  static const Color textSecondary = Color(0xFF94A3B8);
-  static const Color textMuted = Color(0xFF64748B);
+  static const Color textSecondary = Color.fromARGB(255, 255, 255, 255);
+  static const Color textMuted = Color.fromARGB(255, 255, 255, 255);
 
   /// ダークテーマ
   static ThemeData get darkTheme {
