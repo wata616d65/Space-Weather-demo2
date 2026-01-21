@@ -82,17 +82,31 @@ class _LocationManagementScreenState
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = ref.watch(themeProvider);
+
+    // テーマに応じた色
+    final bgColor = isDarkMode
+        ? AppTheme.backgroundColor
+        : AppTheme.lightBackgroundColor;
+    final surfaceColor = isDarkMode
+        ? AppTheme.surfaceColor
+        : AppTheme.lightSurfaceColor;
+    final textPrimary = isDarkMode
+        ? AppTheme.textPrimary
+        : AppTheme.lightTextPrimary;
+    final textSecondary = isDarkMode
+        ? AppTheme.textSecondary
+        : AppTheme.lightTextSecondary;
+    final textMuted = isDarkMode ? AppTheme.textMuted : AppTheme.lightTextMuted;
+
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          '地点管理',
-          style: TextStyle(color: AppTheme.textPrimary),
-        ),
+        title: Text('地点管理', style: TextStyle(color: textPrimary)),
         leading: IconButton(
-          icon: const Icon(Icons.close, color: AppTheme.textPrimary),
+          icon: Icon(Icons.close, color: textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
@@ -104,7 +118,8 @@ class _LocationManagementScreenState
                   builder: (context) => const LocationSearchScreen(),
                 ),
               );
-              _loadLocations(); // 戻ってきたら再読み込み
+              _loadLocations();
+              ref.read(locationsProvider.notifier).refresh();
             },
           ),
         ],
@@ -114,18 +129,11 @@ class _LocationManagementScreenState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.location_off_outlined,
-                    size: 64,
-                    color: AppTheme.textMuted,
-                  ),
+                  Icon(Icons.location_off_outlined, size: 64, color: textMuted),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     '登録された地点はありません',
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: textSecondary, fontSize: 16),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
@@ -136,6 +144,7 @@ class _LocationManagementScreenState
                         ),
                       );
                       _loadLocations();
+                      ref.read(locationsProvider.notifier).refresh();
                     },
                     icon: const Icon(Icons.add),
                     label: const Text('地点を追加'),
@@ -165,13 +174,15 @@ class _LocationManagementScreenState
                 final updatedLocations = List<UserLocation>.from(_locations)
                   ..insert(newIndex, item);
                 _updateLocations(updatedLocations);
+                // グローバルプロバイダーも更新
+                ref.read(locationsProvider.notifier).refresh();
               },
               itemBuilder: (context, index) {
                 final location = _locations[index];
                 return Card(
                   key: ValueKey(location.id),
                   margin: const EdgeInsets.only(bottom: 12),
-                  color: AppTheme.surfaceColor,
+                  color: surfaceColor,
                   elevation: 2,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -181,14 +192,11 @@ class _LocationManagementScreenState
                       horizontal: 16,
                       vertical: 8,
                     ),
-                    leading: const Icon(
-                      Icons.drag_handle,
-                      color: AppTheme.textMuted,
-                    ),
+                    leading: Icon(Icons.drag_handle, color: textMuted),
                     title: Text(
                       location.name,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
+                      style: TextStyle(
+                        color: textPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -196,16 +204,10 @@ class _LocationManagementScreenState
                       location.isCurrentLocation
                           ? '現在地・${location.coordinateString}'
                           : location.coordinateString,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: textSecondary, fontSize: 12),
                     ),
                     trailing: IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: AppTheme.textMuted,
-                      ),
+                      icon: Icon(Icons.delete_outline, color: textMuted),
                       onPressed: () => _deleteLocation(location),
                     ),
                     onTap: () {

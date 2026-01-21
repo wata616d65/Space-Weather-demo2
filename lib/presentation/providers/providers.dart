@@ -6,6 +6,7 @@ import '../../data/repositories/location_repository.dart';
 import '../../data/repositories/noaa_repository.dart';
 import '../../domain/entities/noaa_data.dart';
 import '../../domain/entities/risk_result.dart';
+import '../../domain/entities/space_weather_forecast.dart';
 import '../../domain/entities/user_location.dart';
 import '../../domain/services/risk_calculator.dart';
 
@@ -185,3 +186,174 @@ final allRisksFamilyProvider = FutureProvider.family
         location: location,
       );
     });
+
+/// テーマモードプロバイダー（true: ダーク, false: ライト）
+final themeProvider = StateNotifierProvider<ThemeNotifier, bool>((ref) {
+  final localStorage = ref.watch(localStorageProvider);
+  return ThemeNotifier(localStorage);
+});
+
+class ThemeNotifier extends StateNotifier<bool> {
+  final LocalStorage _localStorage;
+
+  ThemeNotifier(this._localStorage) : super(_localStorage.isDarkMode());
+
+  Future<void> toggle() async {
+    await _localStorage.setDarkMode(!state);
+    state = !state;
+  }
+
+  Future<void> setDarkMode(bool isDark) async {
+    await _localStorage.setDarkMode(isDark);
+    state = isDark;
+  }
+}
+
+/// 通知設定プロバイダー
+final notificationSettingsProvider =
+    StateNotifierProvider<
+      NotificationSettingsNotifier,
+      NotificationSettingsState
+    >((ref) {
+      final localStorage = ref.watch(localStorageProvider);
+      return NotificationSettingsNotifier(localStorage);
+    });
+
+class NotificationSettingsState {
+  final bool enabled;
+  final int threshold;
+  final List<String> locationIds;
+
+  const NotificationSettingsState({
+    this.enabled = false,
+    this.threshold = 3,
+    this.locationIds = const [],
+  });
+
+  NotificationSettingsState copyWith({
+    bool? enabled,
+    int? threshold,
+    List<String>? locationIds,
+  }) {
+    return NotificationSettingsState(
+      enabled: enabled ?? this.enabled,
+      threshold: threshold ?? this.threshold,
+      locationIds: locationIds ?? this.locationIds,
+    );
+  }
+}
+
+class NotificationSettingsNotifier
+    extends StateNotifier<NotificationSettingsState> {
+  final LocalStorage _localStorage;
+
+  NotificationSettingsNotifier(this._localStorage)
+    : super(
+        NotificationSettingsState(
+          enabled: _localStorage.isNotificationEnabled(),
+          threshold: _localStorage.getNotificationThreshold(),
+          locationIds: _localStorage.getNotificationLocationIds(),
+        ),
+      );
+
+  Future<void> setEnabled(bool enabled) async {
+    await _localStorage.setNotificationEnabled(enabled);
+    state = state.copyWith(enabled: enabled);
+  }
+
+  Future<void> setThreshold(int threshold) async {
+    await _localStorage.setNotificationThreshold(threshold);
+    state = state.copyWith(threshold: threshold);
+  }
+
+  Future<void> setLocationIds(List<String> ids) async {
+    await _localStorage.setNotificationLocationIds(ids);
+    state = state.copyWith(locationIds: ids);
+  }
+
+  Future<void> toggleLocation(String locationId) async {
+    final newIds = List<String>.from(state.locationIds);
+    if (newIds.contains(locationId)) {
+      newIds.remove(locationId);
+    } else {
+      newIds.add(locationId);
+    }
+    await setLocationIds(newIds);
+  }
+}
+
+/// 1週間宇宙天気予報プロバイダー
+/// NOAAの実データを基に生成
+final weeklyForecastProvider = FutureProvider.autoDispose<WeeklyForecast>((
+  ref,
+) async {
+  // 現在の宇宙天気データを取得
+  final weatherData = await ref.watch(spaceWeatherDataProvider.future);
+
+  final now = DateTime.now();
+  final forecasts = <SpaceWeatherForecast>[];
+
+  // NOAA scalesから現在の状態を取得
+  final scales = weatherData.scales;
+  final kpIndex = weatherData.kpIndex;
+
+  for (int i = 0; i < 7; i++) {
+    final date = now.add(Duration(days: i));
+    final isPrediction = i >= 3; // 3日目以降は予測
+
+    // 基本レベルはNOAAスケールから（0-5 -> 1-5に変換）
+    int geoLevel = (scales.gScale + 1).clamp(1, 5);
+    int solarLevel = (scales.sScale + 1).clamp(1, 5);
+    int radioLevel = (scales.rScale + 1).clamp(1, 5);
+
+    // 予測日の場合は不確実性を考慮して中央値に近づける
+    if (isPrediction) {
+      geoLevel = ((geoLevel + 2) / 2).round().clamp(1, 5);
+      solarLevel = ((solarLevel + 2) / 2).round().clamp(1, 5);
+      radioLevel = ((radioLevel + 2) / 2).round().clamp(1, 5);
+    }
+
+    // 説明文を生成
+    String description;
+    if (geoLevel <= 2) {
+      description = '安定';
+    } else if (geoLevel == 3) {
+      description = '注意';
+    } else {
+      description = '警戒';
+    }
+
+    // サマリーを生成
+    String summary;
+    if (i == 0) {
+      summary =
+          'Kp指数: ${kpIndex.kpValue.toStringAsFixed(1)}。${_getKpDescription(kpIndex.kpValue)}';
+    } else if (!isPrediction) {
+      summary = '地磁気活動は${description}レベルが予想されます。';
+    } else {
+      summary = '予測精度は低下しますが、${description}レベルの傾向です。';
+    }
+
+    forecasts.add(
+      SpaceWeatherForecast(
+        date: date,
+        geomagneticLevel: geoLevel,
+        solarRadiationLevel: solarLevel,
+        radioBlackoutLevel: radioLevel,
+        geomagneticDescription: description,
+        summary: summary,
+        isPrediction: isPrediction,
+      ),
+    );
+  }
+
+  return WeeklyForecast(forecasts: forecasts, fetchedAt: now);
+});
+
+String _getKpDescription(double kp) {
+  if (kp < 2) return '地磁気活動は静穏です。';
+  if (kp < 4) return '軽微な地磁気活動が観測されています。';
+  if (kp < 6) return '中程度の地磁気活動が観測されています。';
+  if (kp < 8) return '活発な地磁気嵐が発生しています。';
+  return '非常に強い地磁気嵐が発生しています。';
+}

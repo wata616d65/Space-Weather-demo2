@@ -132,19 +132,32 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
   Widget build(BuildContext context) {
     final locations = ref.watch(locationsProvider);
     final selectedLocation = ref.watch(selectedLocationProvider);
+    final isDarkMode = ref.watch(themeProvider);
+
+    // テーマに応じた色
+    final bgColor = isDarkMode
+        ? AppTheme.backgroundColor
+        : AppTheme.lightBackgroundColor;
+    final surfaceColor = isDarkMode
+        ? AppTheme.surfaceColor
+        : AppTheme.lightSurfaceColor;
+    final textPrimary = isDarkMode
+        ? AppTheme.textPrimary
+        : AppTheme.lightTextPrimary;
+    final textMuted = isDarkMode ? AppTheme.textMuted : AppTheme.lightTextMuted;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.backgroundColor,
+        backgroundColor: bgColor,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           '地点を管理',
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -161,10 +174,10 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
                 // 検索入力
                 Container(
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceColor,
+                    color: surfaceColor,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: AppTheme.textMuted.withValues(alpha: 0.1),
+                      color: textMuted.withValues(alpha: 0.2),
                       width: 1,
                     ),
                   ),
@@ -173,19 +186,18 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
                       Expanded(
                         child: TextField(
                           controller: _searchController,
-                          style: const TextStyle(color: AppTheme.textPrimary),
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: textPrimary),
+                          decoration: InputDecoration(
                             hintText: '都市名を入力（例: 東京、大阪）',
-                            hintStyle: TextStyle(color: AppTheme.textMuted),
-                            prefixIcon: Icon(
-                              Icons.search,
-                              color: AppTheme.textMuted,
-                            ),
+                            hintStyle: TextStyle(color: textMuted),
+                            prefixIcon: Icon(Icons.search, color: textMuted),
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 14,
                             ),
+                            filled: true,
+                            fillColor: surfaceColor,
                           ),
                           textInputAction: TextInputAction.search,
                           onSubmitted: (_) => _searchLocation(),

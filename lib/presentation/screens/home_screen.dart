@@ -10,6 +10,8 @@ import 'location_search_screen.dart';
 import 'core_detail_screen.dart';
 import '../../domain/entities/user_location.dart';
 import 'location_management_screen.dart';
+import 'settings_screen.dart';
+import '../widgets/weekly_forecast_section.dart';
 
 /// メイン画面
 /// メイン画面
@@ -54,6 +56,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final locations = ref.watch(locationsProvider);
     final selectedLocation = ref.watch(selectedLocationProvider);
+    final isDarkMode = ref.watch(themeProvider);
+
+    // テーマに応じた背景色
+    final bgColor = isDarkMode
+        ? AppTheme.backgroundColor
+        : AppTheme.lightBackgroundColor;
+    final textPrimary = isDarkMode
+        ? AppTheme.textPrimary
+        : AppTheme.lightTextPrimary;
 
     ref.listen(selectedLocationProvider, (prev, next) {
       if (next != null) {
@@ -77,14 +88,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (locations.isEmpty) {
       return Scaffold(
-        backgroundColor: AppTheme.backgroundColor,
+        backgroundColor: bgColor,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 "地点が登録されていません",
-                style: TextStyle(color: AppTheme.textPrimary, fontSize: 16),
+                style: TextStyle(color: textPrimary, fontSize: 16),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -108,7 +119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: bgColor,
       body: SafeArea(
         child: PageView.builder(
           controller: _pageController,
@@ -126,13 +137,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isCoreMode = ref.watch(displayModeProvider);
     final allRisks = ref.watch(allRisksFamilyProvider(location));
     final spaceWeather = ref.watch(spaceWeatherDataProvider);
+    final isDarkMode = ref.watch(themeProvider);
+
+    // テーマに応じた色
+    final surfaceColor = isDarkMode
+        ? AppTheme.surfaceColor
+        : AppTheme.lightSurfaceColor;
+    final textPrimary = isDarkMode
+        ? AppTheme.textPrimary
+        : AppTheme.lightTextPrimary;
+    final textMuted = isDarkMode ? AppTheme.textMuted : AppTheme.lightTextMuted;
 
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(spaceWeatherDataProvider);
       },
       color: AppTheme.primaryColor,
-      backgroundColor: AppTheme.surfaceColor,
+      backgroundColor: surfaceColor,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
@@ -145,48 +166,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   // タイトル行（地点名 + 編集ボタン）
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const LocationManagementScreen(),
-                            ),
-                          );
-                        },
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.location_on,
-                              color: AppTheme.textPrimary,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              location.name,
-                              style: const TextStyle(
-                                color: AppTheme.textPrimary,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const LocationManagementScreen(),
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.arrow_drop_down,
-                              color: AppTheme.textMuted,
-                            ),
-                          ],
+                            );
+                          },
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.location_on,
+                                color: textPrimary,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  location.name,
+                                  style: TextStyle(
+                                    color: textPrimary,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Icon(Icons.arrow_drop_down, color: textMuted),
+                            ],
+                          ),
                         ),
                       ),
-                      ModeToggle(
-                        isCoreMode: isCoreMode,
-                        onChanged: (isCore) {
-                          ref
-                              .read(displayModeProvider.notifier)
-                              .setMode(isCore);
-                        },
+                      const SizedBox(width: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ModeToggle(
+                            isCoreMode: isCoreMode,
+                            onChanged: (isCore) {
+                              ref
+                                  .read(displayModeProvider.notifier)
+                                  .setMode(isCore);
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const SettingsScreen(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: surfaceColor,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Icon(
+                                Icons.settings,
+                                color: textMuted,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -196,24 +246,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       padding: const EdgeInsets.only(left: 32),
                       child: Text(
                         '更新: ${DateFormatter.formatRelative(data.fetchedAt)}',
-                        style: const TextStyle(
-                          color: AppTheme.textMuted,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: textMuted, fontSize: 12),
                       ),
                     ),
-                    loading: () => const Padding(
-                      padding: EdgeInsets.only(left: 32),
+                    loading: () => Padding(
+                      padding: const EdgeInsets.only(left: 32),
                       child: Text(
                         '読み込み中...',
-                        style: TextStyle(
-                          color: AppTheme.textMuted,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: textMuted, fontSize: 12),
                       ),
                     ),
-                    error: (_, __) => const Padding(
-                      padding: EdgeInsets.only(left: 32),
+                    error: (_, __) => Padding(
+                      padding: const EdgeInsets.only(left: 32),
                       child: Text(
                         'オフライン（キャッシュ表示）',
                         style: TextStyle(
@@ -283,9 +327,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
 
+          // 1週間予報セクション
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 24, bottom: 16),
+              child: ref
+                  .watch(weeklyForecastProvider)
+                  .when(
+                    data: (forecast) => WeeklyForecastSection(
+                      forecast: forecast,
+                      isDarkMode: isDarkMode,
+                    ),
+                    loading: () => const SizedBox(height: 140),
+                    error: (_, __) => const SizedBox(),
+                  ),
+            ),
+          ),
+
           // Core詳細セクション（Coreモードのみ表示）
           if (isCoreMode)
-            SliverToBoxAdapter(child: _buildCoreDetailSection(context, ref)),
+            SliverToBoxAdapter(
+              child: _buildCoreDetailSection(context, ref, location),
+            ),
         ],
       ),
     );
@@ -351,7 +414,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildCoreDetailSection(BuildContext context, WidgetRef ref) {
+  Widget _buildCoreDetailSection(
+    BuildContext context,
+    WidgetRef ref,
+    UserLocation location,
+  ) {
     final kp = ref.watch(kpIndexProvider);
     final solarWind = ref.watch(solarWindProvider);
     final xray = ref.watch(xrayFluxProvider);
@@ -381,17 +448,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Core データ詳細',
-                      style: TextStyle(
+                      '${location.name} - Core データ詳細',
+                      style: const TextStyle(
                         color: AppTheme.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       'NOAA Space Weather Prediction Center',
@@ -478,21 +547,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 8),
                     // オーロラ
                     aurora.when(
-                      data: (data) => data != null
-                          ? _buildMiniDataCard(
-                              context,
-                              'オーロラ',
-                              Icons.auto_awesome,
-                              '${data.visibleLatitude.toStringAsFixed(0)}°',
-                              'N/S',
-                              data.intensity,
-                              data.maxKp >= 5
-                                  ? AppTheme.accentColor
-                                  : AppTheme.textMuted,
-                              description:
-                                  '太陽風が地球の磁場と大気と相互作用して発光する現象です。表示は可視境界の緯度。Kp指数が高いと低緯度でも見られる可能性があります。北海道（緯度43°）では強い地磁気嵐時に観測されることがあります。',
-                            )
-                          : const SizedBox(),
+                      data: (data) {
+                        if (data == null) return const SizedBox();
+
+                        // 地点の緯度（絶対値）とオーロラ可視境界を比較
+                        final locationLat = location.latitude.abs();
+                        final visibleLat = data.visibleLatitude;
+                        final canSeeAurora = locationLat >= visibleLat;
+
+                        String visibility;
+                        Color indicatorColor;
+                        if (canSeeAurora) {
+                          visibility = '観測可能';
+                          indicatorColor = AppTheme.accentColor;
+                        } else if (locationLat >= visibleLat - 5) {
+                          visibility = '可能性あり';
+                          indicatorColor = AppTheme.cautionColor;
+                        } else {
+                          visibility = '観測困難';
+                          indicatorColor = AppTheme.textMuted;
+                        }
+
+                        return _buildMiniDataCard(
+                          context,
+                          'オーロラ',
+                          Icons.auto_awesome,
+                          visibility,
+                          '${location.name}',
+                          'Kp${data.maxKp.toStringAsFixed(0)}以上で緯度${visibleLat.toStringAsFixed(0)}°以北',
+                          indicatorColor,
+                          description:
+                              '${location.name}の緯度は${locationLat.toStringAsFixed(1)}°です。現在のオーロラ可視境界は緯度${visibleLat.toStringAsFixed(0)}°以北です。${canSeeAurora ? "この地点では観測できる可能性があります。" : "この地点では通常観測できません。"}',
+                        );
+                      },
                       loading: () => _buildLoadingMiniCard(),
                       error: (_, __) => const SizedBox(),
                     ),

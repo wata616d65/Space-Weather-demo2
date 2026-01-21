@@ -28,15 +28,13 @@ class ModeToggle extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildOption(
-            label: 'Light',
-            icon: Icons.wb_sunny_outlined,
+            icon: Icons.visibility_outlined,
             isSelected: !isCoreMode,
             onTap: () => onChanged(false),
           ),
           const SizedBox(width: 4),
           _buildOption(
-            label: 'Core',
-            icon: Icons.science_outlined,
+            icon: Icons.insights,
             isSelected: isCoreMode,
             onTap: () => onChanged(true),
           ),
@@ -46,7 +44,6 @@ class ModeToggle extends StatelessWidget {
   }
 
   Widget _buildOption({
-    required String label,
     required IconData icon,
     required bool isSelected,
     required VoidCallback onTap,
@@ -55,29 +52,15 @@ class ModeToggle extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.primaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? Colors.white : AppTheme.textMuted,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : AppTheme.textMuted,
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ],
+        child: Icon(
+          icon,
+          size: 18,
+          color: isSelected ? Colors.white : AppTheme.textMuted,
         ),
       ),
     );
