@@ -347,7 +347,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // Core詳細セクション（Coreモードのみ表示）
           if (isCoreMode)
             SliverToBoxAdapter(
-              child: _buildCoreDetailSection(context, ref, location),
+              child: _buildCoreDetailSection(
+                context,
+                ref,
+                location,
+                isDarkMode,
+              ),
             ),
         ],
       ),
@@ -418,6 +423,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     BuildContext context,
     WidgetRef ref,
     UserLocation location,
+    bool isDarkMode,
   ) {
     final kp = ref.watch(kpIndexProvider);
     final solarWind = ref.watch(solarWindProvider);
@@ -425,6 +431,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final proton = ref.watch(protonFluxProvider);
     final aurora = ref.watch(auroraForecastProvider);
     final scales = ref.watch(noaaScalesProvider);
+
+    // テーマ対応の色
+    final surfaceColor = isDarkMode
+        ? AppTheme.surfaceColor
+        : AppTheme.lightSurfaceColor;
+    final textMuted = isDarkMode ? AppTheme.textMuted : AppTheme.lightTextMuted;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
@@ -520,6 +532,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               _getFlareColor(data.last.flareClass),
                               description:
                                   '太陽の大気中で発生する爆発現象です。X線フラックスで測定され、A（最小）～X（最大）までの5段階に分類されます。X級フレアは地球に大きな影響を与え、短波通信の障害やGPS誤差の原因となります。',
+                              bgColor: surfaceColor,
+                              labelColor: textMuted,
                             )
                           : const SizedBox(),
                       loading: () => _buildLoadingMiniCard(),
@@ -539,6 +553,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               _getSolarWindColor(data.last.speed),
                               description:
                                   '太陽から放出されるプラズマ（荷電粒子）の流れです。通常300-500km/sですが、太陽活動が活発な時は800km/s以上になることも。高速の太陽風は地磁気嵐を引き起こし、オーロラが見える原因となります。',
+                              bgColor: surfaceColor,
+                              labelColor: textMuted,
                             )
                           : const SizedBox(),
                       loading: () => _buildLoadingMiniCard(),
@@ -578,6 +594,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           indicatorColor,
                           description:
                               '${location.name}の緯度は${locationLat.toStringAsFixed(1)}°です。現在のオーロラ可視境界は緯度${visibleLat.toStringAsFixed(0)}°以北です。${canSeeAurora ? "この地点では観測できる可能性があります。" : "この地点では通常観測できません。"}',
+                          bgColor: surfaceColor,
+                          labelColor: textMuted,
                         );
                       },
                       loading: () => _buildLoadingMiniCard(),
@@ -604,6 +622,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               _getKpColor(data.last.kpValue),
                               description:
                                   'Kp指数は地球全体の地磁気活動の指標で、0（静穏）～9（極めて大きな嵐）まで。0-3は通常、5以上は地磁気嵐と分類されます。ドローンのコンパス精度やGPSに影響します。',
+                              bgColor: surfaceColor,
+                              labelColor: textMuted,
                             )
                           : const SizedBox(),
                       loading: () => _buildLoadingMiniCard(),
@@ -623,6 +643,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               _getProtonColor(data.last.sScale),
                               description:
                                   '太陽フレアやCMEに伴って放出される高エネルギー粒子です。Sスケールで表0～5に分類。S2以上では極域航路の航空機乗客の被ばくが増加し、S4以上では人工衛星にも影響します。',
+                              bgColor: surfaceColor,
+                              labelColor: textMuted,
                             )
                           : const SizedBox(),
                       loading: () => _buildLoadingMiniCard(),
@@ -651,7 +673,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ? AppTheme.warningColor
                               : AppTheme.safeColor,
                           description:
-                              '電離圏全電子数（TEC）はGPS信号の精度に影響する指標です。地磁気嵐時には変動が大きくなり、GPSの位置誤差が数メートル～数十メートルになることも。※この値はKp指数からの推定値です。',
+                              '電離層全電子数（TEC）はGPS信号の精度に影響する指標です。地磁気嵐時には変動が大きくなり、GPSの位置誤差が数メートル～数十メートルになることも。※この値はKp指数からの推定値です。',
+                          bgColor: surfaceColor,
+                          labelColor: textMuted,
                         );
                       },
                       loading: () => _buildLoadingMiniCard(),
@@ -741,7 +765,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     String status,
     Color color, {
     String? description,
+    Color? bgColor,
+    Color? labelColor,
   }) {
+    final cardBgColor = bgColor ?? AppTheme.surfaceColor;
+    final cardLabelColor = labelColor ?? AppTheme.textMuted;
+
     return GestureDetector(
       onTap: () => _showCoreDetailSheet(
         context,
@@ -756,7 +785,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceColor,
+          color: cardBgColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
         ),
@@ -770,10 +799,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 10,
-                    ),
+                    style: TextStyle(color: cardLabelColor, fontSize: 10),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -801,10 +827,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(width: 2),
                   Text(
                     unit,
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 9,
-                    ),
+                    style: TextStyle(color: cardLabelColor, fontSize: 9),
                   ),
                 ],
               ],
