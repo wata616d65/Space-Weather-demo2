@@ -94,13 +94,13 @@ class AppTheme {
     );
   }
 
-  // ライトテーマ用カラー
-  static const Color lightBackgroundColor = Color(0xFFF8FAFC);
-  static const Color lightSurfaceColor = Color(0xFFFFFFFF);
-  static const Color lightCardColor = Color(0xFFF1F5F9);
-  static const Color lightTextPrimary = Color(0xFF1E293B);
-  static const Color lightTextSecondary = Color(0xFF475569);
-  static const Color lightTextMuted = Color(0xFF94A3B8);
+  // ライトテーマ用カラー（目に優しいオフホワイト系）
+  static const Color lightBackgroundColor = Color(0xFFEEF2F6); // 少し暗めのグレー背景
+  static const Color lightSurfaceColor = Color(0xFFF8FAFC); // カード用のオフホワイト
+  static const Color lightCardColor = Color(0xFFE2E8F0); // 区切り用の少し暗いグレー
+  static const Color lightTextPrimary = Color(0xFF0F172A); // 濃い紺色（高コントラスト）
+  static const Color lightTextSecondary = Color(0xFF334155); // 少し薄い紺色
+  static const Color lightTextMuted = Color(0xFF64748B); // グレー（見やすい）
 
   /// ライトテーマ
   static ThemeData get lightTheme {
