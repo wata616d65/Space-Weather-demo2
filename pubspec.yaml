@@ -44,12 +44,13 @@ dev_dependencies:
   build_runner: ^2.4.13
   riverpod_generator: ^2.6.2
 
-flutter_launcher_icons:
-  android: true
-  ios: false
-  image_path: "assets/icon/app_icon.png"
-  adaptive_icon_background: "assets/icon/icon_adaptive_background.png"
-  adaptive_icon_foreground: "assets/icon/icon_adaptive_foreground.png"
+#アプリアイコンの設定
+flutter_launcher_icons: 
+  android: true #Androidのアイコンを生成する
+  ios: false #iOSのアイコンは生成しない
+  image_path: "assets/icon/app_icon.png" #通常アイコン
+  adaptive_icon_background: "assets/icon/icon_adaptive_background.png" #バックグラウンド
+  adaptive_icon_foreground: "assets/icon/icon_adaptive_foreground.png" #フォアグラウンド
   
 
 # For information on the generic Dart part of this file, see the
