@@ -1,12 +1,38 @@
+/// 予報の信頼度レベル
+///
+/// 科学的根拠:
+/// - CME（コロナ質量放出）の地球到達時間は速度により1-4日
+/// - 参考: Vršnak et al. (2013), Solar Physics, 285, 295-315
+/// - 参考: Gopalswamy et al. (2001), J. Geophys. Res., 106, 29207-29218
+enum ForecastConfidence {
+  /// 1-2日目: NOAAリアルタイムデータ + 短期予報
+  high,
+
+  /// 3日目: NOAA 3-Day Forecast
+  medium,
+
+  /// 4日目: CME最遅到達時間に基づく傾向予測
+  low,
+}
+
 /// 宇宙天気予報データエンティティ
+///
+/// CME伝播時間に基づく科学的根拠:
+/// - 遅いCME (400-600 km/s): 3-4日で地球到達
+/// - 普通のCME (600-1000 km/s): 2-3日で地球到達
+/// - 速いCME (>1000 km/s): 1-2日で地球到達
+///
+/// 参考文献:
+/// - Vršnak et al. (2013) "Propagation of Interplanetary Coronal Mass Ejections: The Drag-Based Model"
+/// - Gopalswamy et al. (2001) "Predicting the 1-AU arrival times of coronal mass ejections"
 class SpaceWeatherForecast {
   final DateTime date;
-  final int geomagneticLevel; // 1-5
-  final int solarRadiationLevel; // 1-5
-  final int radioBlackoutLevel; // 1-5
+  final int geomagneticLevel; // 1-5 (NOAAスケール G1-G5に対応)
+  final int solarRadiationLevel; // 1-5 (NOAAスケール S1-S5に対応)
+  final int radioBlackoutLevel; // 1-5 (NOAAスケール R1-R5に対応)
   final String geomagneticDescription;
   final String summary;
-  final bool isPrediction; // 3日目以降は予測
+  final ForecastConfidence confidence;
 
   const SpaceWeatherForecast({
     required this.date,
@@ -15,7 +41,7 @@ class SpaceWeatherForecast {
     required this.radioBlackoutLevel,
     required this.geomagneticDescription,
     required this.summary,
-    this.isPrediction = false,
+    required this.confidence,
   });
 
   /// 全体的なリスクレベル（最大値）
@@ -27,97 +53,33 @@ class SpaceWeatherForecast {
     ].reduce((a, b) => a > b ? a : b);
   }
 
-  /// JSONからパース（NOAA 3-Day Forecast形式）
-  factory SpaceWeatherForecast.fromNoaaJson(
-    Map<String, dynamic> json,
-    DateTime date,
-  ) {
-    // NOAA形式のレベル文字列を数値に変換
-    int parseLevel(String? levelStr) {
-      if (levelStr == null) return 1;
-      // "G1", "S2", "R3" などの形式
-      final match = RegExp(r'[GSR](\d)').firstMatch(levelStr);
-      if (match != null) {
-        return int.tryParse(match.group(1) ?? '1') ?? 1;
-      }
-      // "Minor", "Moderate", "Strong" などの場合
-      switch (levelStr.toLowerCase()) {
-        case 'none':
-          return 1;
-        case 'minor':
-          return 2;
-        case 'moderate':
-          return 3;
-        case 'strong':
-          return 4;
-        case 'severe':
-        case 'extreme':
-          return 5;
-        default:
-          return 1;
-      }
+  /// 信頼度の説明文を取得
+  String get confidenceLabel {
+    switch (confidence) {
+      case ForecastConfidence.high:
+        return 'NOAA実データ';
+      case ForecastConfidence.medium:
+        return 'NOAA予報';
+      case ForecastConfidence.low:
+        return 'CME傾向';
     }
-
-    return SpaceWeatherForecast(
-      date: date,
-      geomagneticLevel: parseLevel(json['geomagnetic'] as String?),
-      solarRadiationLevel: parseLevel(json['solar_radiation'] as String?),
-      radioBlackoutLevel: parseLevel(json['radio_blackout'] as String?),
-      geomagneticDescription:
-          json['geomagnetic_description'] as String? ?? '安定',
-      summary: json['summary'] as String? ?? '宇宙天気は安定しています',
-    );
-  }
-
-  /// ダミーデータ生成（開発用）
-  factory SpaceWeatherForecast.dummy(
-    DateTime date, {
-    bool isPrediction = false,
-  }) {
-    // 日付に基づいてある程度ランダムだが再現性のある値を生成
-    final seed = date.day + date.month;
-    final geoLevel = (seed % 3) + 1;
-    final solarLevel = ((seed + 1) % 3) + 1;
-    final radioLevel = ((seed + 2) % 3) + 1;
-
-    final descriptions = ['安定', '穏やか', 'やや活発', '活発'];
-    final summaries = [
-      '宇宙天気は安定しています。',
-      '軽微な活動が予想されます。',
-      '中程度の活動に注意が必要です。',
-      '活発な活動が予想されます。',
-    ];
-
-    return SpaceWeatherForecast(
-      date: date,
-      geomagneticLevel: geoLevel,
-      solarRadiationLevel: solarLevel,
-      radioBlackoutLevel: radioLevel,
-      geomagneticDescription: descriptions[geoLevel - 1],
-      summary: summaries[geoLevel - 1],
-      isPrediction: isPrediction,
-    );
   }
 }
 
-/// 1週間予報データ
-class WeeklyForecast {
+/// 4日間予報データ
+///
+/// CME伝播予測に基づき、科学的に予測可能な最大期間は4日間
+///
+/// 科学的根拠:
+/// - CMEの最遅到達時間: 約4日（遅いCME 400km/sの場合）
+/// - 4日を超える予測は太陽活動の不確実性により精度が著しく低下
+///
+/// 参考文献:
+/// - Vršnak et al. (2013), Solar Physics, 285, 295-315, DOI: 10.1007/s11207-012-0035-4
+/// - Gopalswamy et al. (2001), J. Geophys. Res., 106, A12, 29207-29218
+class FourDayForecast {
   final List<SpaceWeatherForecast> forecasts;
   final DateTime fetchedAt;
 
-  const WeeklyForecast({required this.forecasts, required this.fetchedAt});
-
-  /// ダミーデータ生成
-  factory WeeklyForecast.dummy() {
-    final now = DateTime.now();
-    final forecasts = List.generate(7, (index) {
-      final date = now.add(Duration(days: index));
-      return SpaceWeatherForecast.dummy(
-        date,
-        isPrediction: index >= 3, // 3日目以降は予測
-      );
-    });
-
-    return WeeklyForecast(forecasts: forecasts, fetchedAt: now);
-  }
+  const FourDayForecast({required this.forecasts, required this.fetchedAt});
 }

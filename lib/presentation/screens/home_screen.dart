@@ -327,14 +327,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
 
-          // 1週間予報セクション
+          // 4日間予報セクション（CME伝播予測に基づく）
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.only(top: 24, bottom: 16),
               child: ref
-                  .watch(weeklyForecastProvider)
+                  .watch(fourDayForecastProvider)
                   .when(
-                    data: (forecast) => WeeklyForecastSection(
+                    data: (forecast) => FourDayForecastSection(
                       forecast: forecast,
                       isDarkMode: isDarkMode,
                     ),

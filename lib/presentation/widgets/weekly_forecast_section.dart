@@ -3,12 +3,12 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/entities/space_weather_forecast.dart';
 
-/// 1週間予報セクション
-class WeeklyForecastSection extends StatelessWidget {
-  final WeeklyForecast forecast;
+/// 4日間予報セクション
+class FourDayForecastSection extends StatelessWidget {
+  final FourDayForecast forecast;
   final bool isDarkMode;
 
-  const WeeklyForecastSection({
+  const FourDayForecastSection({
     super.key,
     required this.forecast,
     required this.isDarkMode,
@@ -47,7 +47,7 @@ class WeeklyForecastSection extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                '1週間予報',
+                '4日間予報',
                 style: TextStyle(
                   color: textPrimary,
                   fontSize: 16,
@@ -162,9 +162,9 @@ class WeeklyForecastSection extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (forecast.isPrediction)
+                      if (forecast.confidence == ForecastConfidence.low)
                         Text(
-                          '※ 予測データ（精度低下）',
+                          '※ CME傾向予測',
                           style: TextStyle(
                             color: AppTheme.cautionColor,
                             fontSize: 12,
@@ -340,12 +340,14 @@ class WeeklyForecastSection extends StatelessWidget {
             ),
           ),
 
-          // 予測マーク
-          if (dayForecast.isPrediction)
+          // 信頼度表示
+          if (dayForecast.confidence == ForecastConfidence.low)
             Text(
-              '予測',
+              'CME傾向',
               style: TextStyle(color: AppTheme.cautionColor, fontSize: 9),
             )
+          else if (dayForecast.confidence == ForecastConfidence.medium)
+            Text('NOAA予報', style: TextStyle(color: textMuted, fontSize: 9))
           else
             Text(
               dayForecast.geomagneticDescription,

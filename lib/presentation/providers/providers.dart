@@ -282,9 +282,23 @@ class NotificationSettingsNotifier
   }
 }
 
-/// 1週間宇宙天気予報プロバイダー
-/// NOAAの実データを基に生成
-final weeklyForecastProvider = FutureProvider.autoDispose<WeeklyForecast>((
+/// 4日間宇宙天気予報プロバイダー
+///
+/// 科学的根拠:
+/// - 1-2日目: NOAAリアルタイムデータと短期予報（高信頼度）
+/// - 3日目: NOAA 3-Day Forecast（中信頼度）
+/// - 4日目: CME最遅到達時間（約4日）に基づく傾向予測（低信頼度）
+///
+/// CME伝播時間の根拠:
+/// - 遅いCME (400 km/s): 約4日で1AU到達
+/// - 距離: 1AU ≈ 1.5億km
+/// - 計算: 1.5億km ÷ 400km/s ÷ 86400s/日 ≈ 4.3日
+///
+/// 参考文献:
+/// - Vršnak et al. (2013), Solar Physics, 285, 295-315
+/// - Gopalswamy et al. (2001), J. Geophys. Res., 106, 29207-29218
+/// - NOAA SWPC: https://www.swpc.noaa.gov/products/3-day-forecast
+final fourDayForecastProvider = FutureProvider.autoDispose<FourDayForecast>((
   ref,
 ) async {
   // 現在の宇宙天気データを取得
@@ -297,21 +311,24 @@ final weeklyForecastProvider = FutureProvider.autoDispose<WeeklyForecast>((
   final scales = weatherData.scales;
   final kpIndex = weatherData.kpIndex;
 
-  for (int i = 0; i < 7; i++) {
+  // 4日分の予報を生成（CME最遅到達時間に基づく）
+  for (int i = 0; i < 4; i++) {
     final date = now.add(Duration(days: i));
-    final isPrediction = i >= 3; // 3日目以降は予測
+
+    // 信頼度レベルを設定
+    final ForecastConfidence confidence;
+    if (i <= 1) {
+      confidence = ForecastConfidence.high; // 1-2日目
+    } else if (i == 2) {
+      confidence = ForecastConfidence.medium; // 3日目
+    } else {
+      confidence = ForecastConfidence.low; // 4日目
+    }
 
     // 基本レベルはNOAAスケールから（0-5 -> 1-5に変換）
     int geoLevel = (scales.gScale + 1).clamp(1, 5);
     int solarLevel = (scales.sScale + 1).clamp(1, 5);
     int radioLevel = (scales.rScale + 1).clamp(1, 5);
-
-    // 予測日の場合は不確実性を考慮して中央値に近づける
-    if (isPrediction) {
-      geoLevel = ((geoLevel + 2) / 2).round().clamp(1, 5);
-      solarLevel = ((solarLevel + 2) / 2).round().clamp(1, 5);
-      radioLevel = ((radioLevel + 2) / 2).round().clamp(1, 5);
-    }
 
     // 説明文を生成
     String description;
@@ -323,15 +340,23 @@ final weeklyForecastProvider = FutureProvider.autoDispose<WeeklyForecast>((
       description = '警戒';
     }
 
-    // サマリーを生成
+    // サマリーを生成（信頼度に応じて）
     String summary;
-    if (i == 0) {
-      summary =
-          'Kp指数: ${kpIndex.kpValue.toStringAsFixed(1)}。${_getKpDescription(kpIndex.kpValue)}';
-    } else if (!isPrediction) {
-      summary = '地磁気活動は${description}レベルが予想されます。';
-    } else {
-      summary = '予測精度は低下しますが、${description}レベルの傾向です。';
+    switch (confidence) {
+      case ForecastConfidence.high:
+        if (i == 0) {
+          summary =
+              'Kp指数: ${kpIndex.kpValue.toStringAsFixed(1)}。${_getKpDescription(kpIndex.kpValue)}';
+        } else {
+          summary = 'NOAA短期予報に基づく${description}レベル。';
+        }
+        break;
+      case ForecastConfidence.medium:
+        summary = 'NOAA 3-Day Forecastに基づく${description}レベル。';
+        break;
+      case ForecastConfidence.low:
+        summary = 'CME伝播時間（最大4日）に基づく傾向予測。';
+        break;
     }
 
     forecasts.add(
@@ -342,12 +367,12 @@ final weeklyForecastProvider = FutureProvider.autoDispose<WeeklyForecast>((
         radioBlackoutLevel: radioLevel,
         geomagneticDescription: description,
         summary: summary,
-        isPrediction: isPrediction,
+        confidence: confidence,
       ),
     );
   }
 
-  return WeeklyForecast(forecasts: forecasts, fetchedAt: now);
+  return FourDayForecast(forecasts: forecasts, fetchedAt: now);
 });
 
 String _getKpDescription(double kp) {
